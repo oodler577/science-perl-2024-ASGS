@@ -1,0 +1,262 @@
+\documentclass{article}
+\usepackage{blindtext}
+\usepackage[a4paper, total={6in, 8in}]{geometry}
+\bibliographystyle{plain}
+
+\title{Building A Storm Surge Forecasting System That Saves Lives}
+
+\author{
+Brett Estrade \\
+\large\textit{brett.estrade@coastalcomputingservices.net}
+\\
+Jason G. Fleming, PhD. \\
+\large\textit{jason.fleming@seahorsecoast.com}
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The ADCIRC Surge Guidance System is a portable real-time operational storm surge
+forecasting framework, forged over 15 Atlantic hurricane seasons, that is used
+to deliver critical information to emergency managers on federal, state, and
+local levels in Louisiana, Texas, and North Carolina and within groups such
+FEMA, NOAA, and DHS. Over the years it has saved millions of dollars in time,
+property, and emergency assets. It has also likely saved many lives. This paper
+discusses its humble origins from a collaboration between LSU and UNC in the
+early wake of Hurricane Katrina (2005), to its first real test during Hurricane
+Gustav (2008) and successes over the years. Much of this paper discusses the
+technical aspects of the system, how the user experience has been tailored for
+real-time operations, and the technical decisions that have been made leading
+directly to its success as a robust and adaptable framework.  Most relevant 'for
+the intended audience is how using Perl, Bash shell scripting, and standard Unix
+tools has made all of this possible.
+\end{abstract}
+
+\section{Introduction}
+
+It is hard to believe that in 2001 when weather forecasting models were well
+know and used across society, that the the idea of providing such forecasting
+litoral, or nearshore zones was the realm of specialized oceangraphers and the
+military. But it is true, that until the infamous Hurricane Katrina in 2005 that
+that nobody outside this small cadre of specialists ran these kinds of models or
+cared much.
+
+As it came to pass, Katrina exposed the crucial need for providing autmated
+storm surge forcasting. And wider society was reminded that it is the water that
+kills the most people during hurricanes, not the wind. Far more than a slow
+moving, foreboding and wet tornado, a hurricane is a wholly different kind of
+threat. Along with its many inches of rain and harsh winds, can come a wall of
+that may in some places exceed 30 feet. And this was the case with Katrina.
+
+The mathematics behind such modeling capabilities had existed for a long time (CITE),
+and infact was pioneered by the Dutch; who themselves had been victims of grave
+flooding events over the centuries. It was not until the late 1980s that a
+model was developed that would revolutionize the ability to accurately model
+the way that water behaved near the shorelines.
+
+\subsection{ADCIRC - The Advanced Circulation Model}
+
+... about ADCIRC \cite{luettich1992adcirc} ...
+
+The ADCIRC model is the main \textit{kernel} around which the forecasting system
+ins build. It automates all aspects of setting up the model, running it (usually
+in on a parallel Linux cluster), processing the results, and send the results to
+a geographical information system for viewing on the web.
+
+The remainder of the paper will describe the automation built around this model.
+
+\section{ASGS: The Little ADCIRC Engine That Could ...}
+
+About ASGS ... \cite{fleming08}
+
+INSERT SYSTEM DIAGRAM HERE
+
+\section{Managing Input Data}
+
+\subsection{The Unstructured Mesh}
+
+... fort.14
+
+\subsection{North American Meteorological Forecasts (NAM)}
+
+ASGS may be run in a \textit{daily} forecasting mode where it watches for
+available NAM forecast data. This data is typically made available 4 times in a
+24 hour period at: 00Z, 06Z, 12Z, and 18Z.
+
+This data consists of ..
+
+ASGS uses a Perl script to create a meteorological wind forcing file, commonly
+referred to as a \textit{fort.22}. The data conversion process involves
+interpolated the NAM gridded data values onto the unstructured nodes of the
+unstructured mesh that ADCIRC uses to represent complex coastline geometries.
+
+NAM data is also used when the NHC identifies areas of interest, but are not yet
+well formed enough to begin issue advisories. ASGS is able to shift from NAM mode
+to NHC mode once official advisories begin. These advisories are short text file
+and do not contain explicit forecast data, so here again Perl is used.
+
+\subsection{National Hurricane Center Forecasts}
+
+The advisories that are issued but the NHC contain forecasting about the future
+projected path of the center of pressure of the system. In addition to this, it
+contains a set of date that describes the forasted path of the system and lines
+of similar pressures (VERIFY).
+
+A Perl script parses this information out of the NHC forecast advisory, and converts
+it into a format that may be used by ADCIRC to generate a wind field gradient.
+This wind field is then mapped internally inside of ADCIRC to the mesh, and used
+to drive the model state as if it were provided explicit wind information. The
+internal wind generation is done using what's called the \textit{Generalized Asymmetric
+Holland Model}, or just GAHM.
+
+\section{Generating Alternate Storm Track Scenarios}
+
+One of the major concepts that LPFS demonstrated was the efficacy of running multiple
+alternate storms. The reason for this is that, due to the complexity of coastline
+geography, drastic changes in expected storm surge may happen based on real time
+shifts in the storms actual path or in its actual strength. For this reason, ASGS
+runs not only the official forecast (also called the \textit{consensus} track), but
+also some tracks that have been perturbed in such as way that they may \textit{veer}
+right or left to some degree; or the wind speed may be increased or decreased.
+
+During a storm event, the \textit{scenario package} may be adjusted based on the
+information needs of key stakeholders at the state and federal level. For example,
+given the consensus track; they may wish to see the surge forecast in the event that
+the storm shifted to the left 50\%. They may also wish to see what would happen if the
+storm intensified at some point before landfall, which in the model would mean that
+the wind speeds would be increased by some percentage. In ASGS, storm scenarios may
+be adjusted for both the \textit{veer} and the change in wind \textit{intensity}.
+
+\section{Updating Model Settings}
+
+After ADCIRC is compiled, input files are used to define the simulations. The fort.14
+is a file that defines the physical geographical domain, e.g., the shape of the coastline
+around the areas of interest. From simulation to simulation, this geographical model
+remains unchanged.
+
+However, the model parameters are controlled by the fort.15 file; and this sets a lot
+of the physical constraints of the model. It also controls the temporal constraints
+e.g., the \textit{cold start} time, \textit{ramp time}, and number of days. The start
+time of the model maps the t0 timestep of the model with a real external date and time
+in the human world. In most cases, people who run ADCIRC treat it like a one time run.
+
+In a forecast mode, the fort.15 must be updated to take into account the continuation
+from the previous run. While the start time remains the same, there are parameters that
+must be set to tell ADCIRC to, with the benefit of a \textit{saved state} file, to begin
+at a later time.
+
+If one was to do a forecast by hand, the procedure would be:
+
+1. make initial run with input data, save model state at the end
+
+2. update meteorological forcing input files
+
+3. update the fort.15 to specify a \textit{hot start} and the simulation timestep in
+which to begin
+
+...
+
+
+\section{Executing the Model}
+
+..queue systems, automatic detection of finishing, etc ...
+
+\section{Post Processing}
+
+\section{Output Data Management}
+
+\subsection{Managing Remote Data Targets}
+
+\subsection{Offsite Visualization Pipeline}
+
+\subsection{Notifications}
+
+\section{Continuity During the Storm}
+
+As if this wasn't complicated enough, ASGS minimizes the amount of ADCIRC runtime needed
+by managing state or \textit{hot start} files. In order to always be starting at a model
+state that was generated from where the storm actually has been, it is essential to play
+\textit{catch up} before running the next set up storm scenarios.
+
+When the NHC issues a forecast, it also issues what's called a \textit{best track} file
+that gives tells us where the storm has been and what its central pressures and isotachs
+were. So when the NHC issues an advisory, what actually happens is the following:
+
+\subsection{The Hindcast}
+
+\subsection{The Nowcast}
+
+.. catch up
+
+\subsection{The Forecast}
+
+....
+
+\section{Operational Considerations}
+
+\subsection{System Portability}
+
+\subsection{System Configurability}
+
+\subsection{Redundancy}
+
+...multiple sites, ...
+
+\subsection{Maximization of Operator Efficiency}
+
+\subsection{Minimization of Cognative Load}
+
+\subsection{Field Servicability}
+
+\subsection{Teardown and Rebuild vs Troubleshooting}
+
+\section{The ASGS Shell Environment}
+
+\subsection{How It Works}
+
+\subsection{The ADCIRC Builder}
+
+\subsection{ADCIRC Live ...}
+
+\section{ASGS System Monitoring}
+
+\section{Team Communication and Battle Rhythm}
+
+\section{Technology Decisions}
+
+\subsection{The Software Stack}
+
+based on portability, easy of understanding, modifying in real time, field
+servicing, track record of reliabilty, etc, etco
+
+.. history of forecasting systems I've built and the common threads (bash,
+perl, fortran ..)
+
+\subsection{The Hardware Systems}
+
+cloud versus bare metal - why ...
+
+\section{Bash}
+
+Bash is the engine ...
+
+\section{Perl}
+
+Perl is the super charger nitro booser ...
+
+\section{The Technology Graveyard}
+
+... python, matlab
+
+\section{Research \& Development}
+
+\textbf{Weather::NHC::TropicalCyclone} ....
+
+\textbf{OpenMP::Simple} ....
+
+... experimenting mesh partitioning schemes
+
+\break
+\bibliography{references}
+\end{document}
