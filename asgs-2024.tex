@@ -1,7 +1,32 @@
 \documentclass{article}
-\usepackage{blindtext}
-\usepackage[a4paper, total={6in, 8in}]{geometry}
 \bibliographystyle{plain}
+
+% Language setting
+% Replace `english' with e.g. `spanish' to change the document language
+\usepackage[english]{babel}
+
+% Set page size and margins
+% Replace `letterpaper' with `a4paper' for UK/EU standard size
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+% Useful packages
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+\usepackage{listings,xcolor}
+
+\lstdefinestyle{perl}
+{
+   language=Perl,
+   basicstyle=\ttfamily,
+   keywordstyle=\bfseries\color{green!40!black},
+   commentstyle=\color{purple!40!black},
+   identifierstyle=\color{blue},
+   stringstyle=\color{orange},
+   alsoletter={\%},
+}
+\lstset{style=perl}
 
 \title{Building A Storm Surge Forecasting System That Saves Lives}
 
@@ -18,7 +43,7 @@ Jason G. Fleming, PhD. \\
 
 \begin{abstract}
 The ADCIRC Surge Guidance System is a portable real-time operational storm surge
-forecasting framework, forged over 15 Atlantic hurricane seasons, that is used
+fore- casting framework, forged over 15 Atlantic hurricane seasons, that is used
 to deliver critical information to emergency managers on federal, state, and
 local levels in Louisiana, Texas, and North Carolina and within groups such
 FEMA, NOAA, and DHS. Over the years it has saved millions of dollars in time,
@@ -28,7 +53,7 @@ early wake of Hurricane Katrina (2005), to its first real test during Hurricane
 Gustav (2008) and successes over the years. Much of this paper discusses the
 technical aspects of the system, how the user experience has been tailored for
 real-time operations, and the technical decisions that have been made leading
-directly to its success as a robust and adaptable framework.  Most relevant 'for
+directly to its success as a robust and adaptable framework. Most relevant ’for
 the intended audience is how using Perl, Bash shell scripting, and standard Unix
 tools has made all of this possible.
 \end{abstract}
@@ -40,222 +65,874 @@ know and used across society, that the the idea of providing such forecasting
 litoral, or nearshore zones was the realm of specialized oceangraphers and the
 military. But it is true, that until the infamous Hurricane Katrina in 2005 that
 that nobody outside this small cadre of specialists ran these kinds of models or
-cared much.
+cared much.  As it came to pass, Katrina exposed the crucial need for providing
+autmated storm surge for- casting. And wider society was reminded that it is the
+water that kills the most people during hurricanes, not the wind. Far more than
+a slow moving, foreboding and wet tornado, a hurricane is a wholly different
+kind of threat. Along with its many inches of rain and harsh winds, can come a
+wall of that may in some places exceed 30 feet. And this was the case with
+Katrina.  The mathematics behind such modelling capabilities had existed for a
+long time \cite{luettich1992adcirc}, and in fact was pioneered by the Dutch; who
+themselves had been victims of grave flooding events over the centuries. It was
+not until the late 1980s that a model was developed that would revolutionize the
+ability to accurately model the way that water behaved near the shorelines.
 
-As it came to pass, Katrina exposed the crucial need for providing autmated
-storm surge forcasting. And wider society was reminded that it is the water that
-kills the most people during hurricanes, not the wind. Far more than a slow
-moving, foreboding and wet tornado, a hurricane is a wholly different kind of
-threat. Along with its many inches of rain and harsh winds, can come a wall of
-that may in some places exceed 30 feet. And this was the case with Katrina.
+\section{ADCIRC - The Advanced Circulation Model}
 
-The mathematics behind such modeling capabilities had existed for a long time (CITE),
-and infact was pioneered by the Dutch; who themselves had been victims of grave
-flooding events over the centuries. It was not until the late 1980s that a
-model was developed that would revolutionize the ability to accurately model
-the way that water behaved near the shorelines.
+The ADCIRC model is the main kernel around which the forecasting system ins
+build. It automates all aspects of setting up the model, running it (usually in
+on a parallel Linux cluster), processing the results, and send the results to a
+geographical information system for viewing on the web.  The computational model
+itself is internationally recognized as the best way model the the behavior of
+large mass of water as it is piled up against a complex coastline geometry. It
+is used to study the impacts of past hurricanes in the Gulf of Mexico and the
+Atlantic coastline of the United States. It is to verify insurance claims after
+these sort of tropical surge events. It is even used to forecast potential
+impacts of hypothetical and real time tropical events.  The application area
+discussed here is that of forecasting potential impacts of a tropical event as
+it heads towards making landfall somewhere in the United States. The system is
+essentially the automation of running the model, just as someone would run it
+manually. Only here the system automates all aspects of the set up, execution,
+and post processing of results into products and forms that are readily consumed
+by the interested parties, be they the general public or Federal and State level
+emergency managers.  Recently, after many years in a state of ambiguity, the
+source code for ADCIRC was released as open source software under the GNU GPL
+3.0 license. This has opened up opportunities for professional ADCIRC support
+companies such as ADCIRC Live \footnote{\url{https://adcirc.live}} to offer support
+packages and SaaS platforms for helping those using ADCIRC professionally or as
+a public service.
 
-\subsection{ADCIRC - The Advanced Circulation Model}
+\section{ADCIRC Input Data}
 
-... about ADCIRC \cite{luettich1992adcirc} ...
+ADCIRC has a minimal set of input files that it needs to run. It needs
+unstructured finite element mesh that describes the physical geographical domain
+(e.g., the coastline and nearshore features such as levees, piers, etc) and a
+settings file. The mesh is referred to colloquially as the "fort.14" file; the
+settings file is referred to as the "fort.15" file. ADCIRC may be run with no
+forcing turned on, but without additional input files may be run with tidal
+standard tidal forces being applied. Most usefully, ADCIRC is run with winds
+that are driving the surface of the water domain. The file that contains the
+winds, or meteorological forcing, is referred to as the "fort.22" file. This
+file can take on different types of formats.
 
-The ADCIRC model is the main \textit{kernel} around which the forecasting system
-ins build. It automates all aspects of setting up the model, running it (usually
-in on a parallel Linux cluster), processing the results, and send the results to
-a geographical information system for viewing on the web.
-
-The remainder of the paper will describe the automation built around this model.
-
-\section{ASGS: The Little ADCIRC Engine That Could ...}
-
-About ASGS ... \cite{fleming08}
-
-INSERT SYSTEM DIAGRAM HERE
-
-\section{Managing Input Data}
+One someone is setting up the model for the first time, the next big challenge
+is generating relevant fort.22 files for the mesh. Most do not start out
+creating their own mesh, this is considered an advanced activity. Most users
+start with a well established unstructured mesh, then work to convert some
+meteorological data into this fort.22. For example, if someone wanted to run
+ADCIRC using a particular mesh and the wind data observed by a recent hurricane
 
 \subsection{The Unstructured Mesh}
 
-... fort.14
+The ADCIRC model is centered around the concept of a physical domain, i.e., the
+coastline along a large body of water capable of generated a surge of water
+resulting from meteorological forcing - i.e., wind. When the model was
+originally developed, the decision was made that the physical domain would be
+represented with what is called finite elements.  The main reason was that in
+order to model complex coastline geometries, the representation used needed to
+allow for varying degrees of resolution such that there were many points of
+interest near the shore and relatively few points of interest in the open ocean.
+Any number of polygonal shapes could be used, but ADCIRC uses triangular
+elements. So a mesh consists of points in space at specific locations and a list
+of neighboring nodes to which it is connected.
 
-\subsection{North American Meteorological Forecasts (NAM)}
+This unstructured, or finite element mesh, is as one might expect defined as a
+graph would be. I.e., the mesh file, or fort.14, is simply a list of all the
+points in the domain; plus a list of all edges connecting different points.
+ADCIRC is strictly 2 dimensional internally, but because the depth of the water
+affects the surge, each mesh does also require the bathymetric depth at each
+point. This information is also contained in the fort.14 file.  Once selected
+for a model run, this file does not change and is considered static in any
+consideration of automation or continuous running scenarios.
 
-ASGS may be run in a \textit{daily} forecasting mode where it watches for
-available NAM forecast data. This data is typically made available 4 times in a
-24 hour period at: 00Z, 06Z, 12Z, and 18Z.
+\subsection{Settings File}
 
-This data consists of ..
+The settings files controls many of the runtime settings of the ADCIRC model.
+The most important as they relate to the automation of the model are that the
+specify when in the "model time" output is produced. Output includes the actual
+prediction values of height of the water and 2 dimensional water velocities, but
+it also includes the outputting of a state or "hot start" file. This state file
+fundamental to any system automation of the model that is meant to run a
+simulation continuously. More on this is described later in this paper in the
+section regarding considerations for running ADCIRC continuously. Another
+important aspects of this file that are important include the number of days of
+the simulation (in model time).  When considering the automation of ADCIRC model
+runs and the continuous running across successive restarts, starting with the
+previous last mode state; the fort.15 must be updated for each successive start.
 
+\subsection{Meteorological Forcing}
+
+North American Meteorological Forecasts (NAM) ASGS may be run in a daily
+forecasting mode where it watches for available NAM forecast data. This data is
+typically made available 4 times in a 24 hour period at: 00Z, 06Z, 12Z, and 18Z.
 ASGS uses a Perl script to create a meteorological wind forcing file, commonly
-referred to as a \textit{fort.22}. The data conversion process involves
-interpolated the NAM gridded data values onto the unstructured nodes of the
-unstructured mesh that ADCIRC uses to represent complex coastline geometries.
-
-NAM data is also used when the NHC identifies areas of interest, but are not yet
-well formed enough to begin issue advisories. ASGS is able to shift from NAM mode
-to NHC mode once official advisories begin. These advisories are short text file
-and do not contain explicit forecast data, so here again Perl is used.
-
-\subsection{National Hurricane Center Forecasts}
+referred to as a fort.22. The data conversion process involves interpolated the
+NAM gridded data values onto the unstructured nodes of the unstructured mesh
+that ADCIRC uses to represent complex coastline geometries.  NAM data is also
+used when the NHC identifies areas of interest, but are not yet well formed
+enough to begin issue advisories. ASGS is able to shift from NAM mode to NHC
+mode once official advisories begin. These advisories are short text file and do
+not contain explicit forecast data, so here again Perl is used.  Updated input
+files are fetched and prepared between a previous and success model run. In the
+case of hurricane forecasting, much of this meteorological data is a speculative
+forecast. One of it is, however, based on actual observations; this must be used
+in order to catch the model up to the present time with real data so that it
+reflects what has actually happened. In the literature, this is referred to as a
+\textit{hindcast}.  National Hurricane Center Forecasts
 
 The advisories that are issued but the NHC contain forecasting about the future
 projected path of the center of pressure of the system. In addition to this, it
 contains a set of date that describes the forasted path of the system and lines
 of similar pressures (VERIFY).
 
-A Perl script parses this information out of the NHC forecast advisory, and converts
-it into a format that may be used by ADCIRC to generate a wind field gradient.
-This wind field is then mapped internally inside of ADCIRC to the mesh, and used
-to drive the model state as if it were provided explicit wind information. The
-internal wind generation is done using what's called the \textit{Generalized Asymmetric
-Holland Model}, or just GAHM.
+A Perl script parses this information out of the NHC forecast advisory, and
+converts it into a format that may be used by ADCIRC to generate a wind field
+gradient. This wind field is then mapped internally inside of ADCIRC to the
+mesh, and used to drive the model state as if it were provided explicit wind
+information. The internal wind generation is done using what’s called the
+Generalized Asymmetric Holland Model, or just GAHM.
 
-\section{Generating Alternate Storm Track Scenarios}
+\subsection{Other Input Files}
 
-One of the major concepts that LPFS demonstrated was the efficacy of running multiple
-alternate storms. The reason for this is that, due to the complexity of coastline
-geography, drastic changes in expected storm surge may happen based on real time
-shifts in the storms actual path or in its actual strength. For this reason, ASGS
-runs not only the official forecast (also called the \textit{consensus} track), but
-also some tracks that have been perturbed in such as way that they may \textit{veer}
-right or left to some degree; or the wind speed may be increased or decreased.
+For the sake of completeness, it should be mentioned that ADCIRC contains other
+input files that describe aspects such as nodal attributes, which provides
+additional values mapped to each node (the fort.13 file). One example is surface
+roughness, which is used to specify the wind damping effect of bare dry land,
+forested areas, swamps and marshes, etc. These attributes have a very important
+effect to how the water behaves once dry areas have become wet or hurricanes
+begin to effect areas buffered by wetlands and marshes. The latter many coastal
+communities in Louisiana have traditionally been spared from storm surge during
+hurricanes is that they sit behind wetlands; these tend to have a protective
+effect from the surge. We they are depleted by manmade or natural causes, this
+protection goes away because less of the energy that contributes to the storm
+surge is dissipated.
 
-During a storm event, the \textit{scenario package} may be adjusted based on the
-information needs of key stakeholders at the state and federal level. For example,
-given the consensus track; they may wish to see the surge forecast in the event that
-the storm shifted to the left 50\%. They may also wish to see what would happen if the
-storm intensified at some point before landfall, which in the model would mean that
-the wind speeds would be increased by some percentage. In ASGS, storm scenarios may
-be adjusted for both the \textit{veer} and the change in wind \textit{intensity}.
+\section{Automating ADCIRC}
 
-\section{Updating Model Settings}
+ADCIRC lends itself exceptionally well to automation on Unix and Unix-like
+operating systems with familiar approaches such as shell and Perl scripting,
+especially in large timesharing High Performance Computing environments. Since
+it is a rare individual that possess acumen in both the science and in
+proficient system scripting and software engineers, environments where ADCIRC
+automation is needed requires individuals with these complementary skill sets.
+Generally speaking, the the automation of ADCIRC actually requires addressing
+many areas. For a "system" to claim that it fully automates ADCIRC, the system
+must address all of the following capabilities in some manner:
 
-After ADCIRC is compiled, input files are used to define the simulations. The fort.14
-is a file that defines the physical geographical domain, e.g., the shape of the coastline
-around the areas of interest. From simulation to simulation, this geographical model
-remains unchanged.
+Missing from this list of capabilities are two topics. One has to do with the
+coupling of other models that specialize in different physical processes. The
+has to do with data assimilation or adjusting of the model output data based on
+some external method of analysis.
 
-However, the model parameters are controlled by the fort.15 file; and this sets a lot
-of the physical constraints of the model. It also controls the temporal constraints
-e.g., the \textit{cold start} time, \textit{ramp time}, and number of days. The start
-time of the model maps the t0 timestep of the model with a real external date and time
-in the human world. In most cases, people who run ADCIRC treat it like a one time run.
+\subsection{Building ADCIRC}
 
-In a forecast mode, the fort.15 must be updated to take into account the continuation
-from the previous run. While the start time remains the same, there are parameters that
-must be set to tell ADCIRC to, with the benefit of a \textit{saved state} file, to begin
-at a later time.
+The successful building of ADCIRC on a computing platform one has at their
+disposal is considered a rite of passage in the ADCIRC Community. Many graduate
+students, engineering consultants, and computer support staff members will face
+this challenge very soon after the decision is made to use ADCIRC in some way.
+The activity of building ADCIRC on a new platform is referred to as "porting".
+The ADCIRC source code ships with both its traditional Makefile-based \cite{}
+building systems and a newer, but not necessarily cooler CMake \cite{}. Most
+users prefer the traditional Makefile, since it is more amenable to the process
+of tinkering until it works. Most porting efforts require figuring out the
+work/cmplrflags.mk file. On the rare occasion, often when it involves a new
+compiler on a new system, there might need to be minor updating of the Fortran
+90 code. Due to this reality, the Fortran 90 code itself has accumulated CPP
+style IFDEF sections.  Recently, the building and deployment of ADCIRC has been
+made much more accessible on the systems that are actively supported by ASGS
+\cite{}. Other systems for providing ADCIRC do exist, but they introduce
+more complications for unsophisticated users than they remove \cite{}.
 
-If one was to do a forecast by hand, the procedure would be:
+Fortunately, once ADCIRC is built, the resulting binary executables do not need
+to be rebuilt to turn different options on or off. This is handled in the
+settings file, colloquially known as the fort.15 file.
 
-1. make initial run with input data, save model state at the end
+\subsection{The Geographical Domain, aka, The Mesh}
 
-2. update meteorological forcing input files
+As mentioned above above in the section on ADCIRC Input Files, the fort.14 file
+defines the physical geographical domain of interest. When ADCIRC is involved,
+this area will always involve littoral or nearshore areas. Once a mesh is
+selected to represent the desired geographical domain, it is a decision that
+remains permanent for the duration of the particular forecasting run.
 
-3. update the fort.15 to specify a \textit{hot start} and the simulation timestep in
-which to begin
+There are development versions of ADCIRC that are able to nest mesh domains and
+it is possible to take the state file from one one run and interpolate it onto a
+smaller, more focused mesh. But these are used for research purposes and not
+used operationally. If this was part of the operational system being discussed
+in this paper, then it would only slightly complicate the process by adding an
+additional step for introducing another mesh. The applications of this are
+interesting, but have so far not been necessary for operational needs.
 
-...
+\subsection{Input Data}
 
+The consideration of acquiring input data, particularly meteorological forcing
+data (GFS, NAM, NHC, etc) is an important one. There are many operational
+systems that publish forecast data that may be used by ADCIRC at regular
+interviews. If someone is automating this part of ADCIRC, then it is safe to
+assume they're in some interested in timely or operational results. For example,
+give the mesh and the current wind forecast, where will the highest surges
+occur? Answering questions like this is in the operational domain.  The main
+challenge to automating the acquisition of data consist of:
 
-\section{Executing the Model}
+Over the years, many tools and approaches have been proposed to make it easier;
+and general patents from the Navy exist \cite{}. Most people tend to create
+their own scripts, but recently there have been attempts to present SaaS
+aggregation services that allow one to select which meteorological data to get
+and how it should be converted before downloading. While interesting and useful,
+a more local approach is required for operational considerations; especially
+during an emergency management situation like a hurricane.
 
-..queue systems, automatic detection of finishing, etc ...
+\subsection{Updating Model Settings}
 
-\section{Post Processing}
+After ADCIRC is compiled, input files are used to define the simulations. The
+fort.14 is a file that defines the physical geographical domain, e.g., the shape
+of the coastline around the areas of interest. From simulation to simulation,
+this geographical model remains unchanged.  However, the model parameters are
+controlled by the fort.15 file; and this sets a lot of the physical constraints
+of the model. It also controls the temporal constraints e.g., the cold start
+time, ramp time, and number of days. The start time of the model maps the t0
+timestep of the model with a real external date and time in the human world. In
+most cases, people who run ADCIRC treat it like a one time run.  In a forecast
+mode, the fort.15 must be updated to take into account the continuation from the
+previous run. While the start time remains the same, there are parameters that
+must be set to tell ADCIRC to, with the benefit of a saved state file, to begin
+at a later time.  If one was to do a forecast by hand, the procedure would be:
 
-\section{Output Data Management}
+As will be seen below, Perl offers a uniquely simple way to manage the updating
+of this settings file.
 
-\subsection{Managing Remote Data Targets}
+\subsection{Preparing a Multiprocessor Execution}
 
-\subsection{Offsite Visualization Pipeline}
+In addition to being an exceptionally accurate physical simulation of storm
+surge and the effect of tides in nearshore and littoral environments, one of
+ADCIRC's greatest practical strengths is that it scales very efficiently when a
+single simulation is spread over multiple processors. In fact, many benchmarking
+studies of the code has shown that ADCIRC will scale linearly up to the point
+that there are 3-5,000 nodes per CPU or core. \cite{benchmarks}.
 
-\subsection{Notifications}
+In practical terms that means that one may take mesh that has been created with
+very high resolution in specific areas (e.g., the southeast
+Louisiana/Mississippi Delta) and run them within a bounded amount of time
+provided that it is run on enough processors. For example, there is a mesh used
+operationally in Texas and Louisiana called the TX2020a that has exactly
+4,266,444 nodes and 8,456,596 triangular elements. At 4,000 nodes per CPU, this
+helps operational experts justify the use of over 1,000 CPU codes per execution.
+And because the speedup has been shown to be linear, it would take the same
+amount of time to run this large TX2020a mesh that it would to run a mesh
+1/1,000th the size on a single CPU core.Recent efforts out of Notre Dame and
+funded by NOAA are producing an extremely large global mesh\cite{}. Notre Dame's
+group headed by Professor Johannes Westerink regularly publishes an update mesh.
+Each iteration put out by Notre Dame is focused on adding additional resolution
+over important areas of the world that require more dense node coverage because
+there are very important hydrological dynamics that have been identified to be
+occurring in these areas. This mesh is over 12 million nodes, which means that
+if run operationally it would efficiently use over 2,500 CPU cores. And many
+sites across the United States are capable of providing these resources,
+including the Texas Advanced Computing Center
+(TACC)\footnote{{https://tacc.utexas.edu/}} and the combined resources of
+Louisiana State University's HPC Center\footnote{\url{https://hpc.lsu.edu}} and
+thier sister organization, Louisiana Optical Network Inititiative
+\footnote{\url{https://loni.org}}.
 
-\section{Continuity During the Storm}
+Preparing ADCIRC input files for parallel execution is relatively simple. When
+ADCIRC is compiled, it builds a utility called "adcprep". This utility sole
+purpose is to decompose the original, potentially very large mesh and input
+files into the specified number of smaller domains and with corresponding
+subsets of data for the subdomain, respectively. One may think of the execution
+of parallel ADCIRC as the cooperative execution of many mini-ADCIRC domains. The
+adcprep utility also tracks which subdomains are adjacent, like puzzle pieces.
+And the well established Message Passing Interface standard library (OpenMPI) is
+used to facilitate the communication of the values at the shared edges of these
+subdomains.
 
-As if this wasn't complicated enough, ASGS minimizes the amount of ADCIRC runtime needed
-by managing state or \textit{hot start} files. In order to always be starting at a model
-state that was generated from where the storm actually has been, it is essential to play
-\textit{catch up} before running the next set up storm scenarios.
+This step is required each time the fort.15 is created for a subsequent run and
+for each new set of input files.
 
-When the NHC issues a forecast, it also issues what's called a \textit{best track} file
-that gives tells us where the storm has been and what its central pressures and isotachs
-were. So when the NHC issues an advisory, what actually happens is the following:
+\subsection{Executing a Multiprocessor Simulation}
 
-\subsection{The Hindcast}
+Parallel ADCIRC may be built, prepared, and executed just fine on someone's
+many-core laptop or multi-core desktop workstation. But in order to get access
+to very large numbers of processors for these large operational meshes, it is
+necessary to use the academic or governmental HPC machines. And all of these
+environments present time on their large clusters through a time sharing batch
+system, generally referred to as the "queue". On a private system, a parallel
+ADCIRC execution is initialed with the "mpirun" command.
 
-\subsection{The Nowcast}
+On a large shared HPC system, one must submit a job to the queue. The "submit
+script" contains some important information so the system can validate time
+budget to certain projects, what kinds of compute modes should be involved, how
+many CPUs are required, etc. Over the years the batch systems have varied based
+on vendor. For example, IBM HPC machines use(d?) a system called LoadLeveler.
+There is also a system common on old running Linux clusters called PBS. Modern
+systems tend to use the open source batch queue system, which works very
+similarly to its forerunners, called Slurm.
 
-.. catch up
+So, executing parallel ADCIRC on a private system is not a big deal because it's
+a single command on a private system, and this can be automated very easily. But
+automating the submission of a large ADCIRC simulation on a batch system can get
+complicated very quickly, and there are many different situations that must be
+considered. And this is all assuming that the automation and submission happens
+local to the HPC itself. If the "command and control" of the ADCIRC automation
+must be managed on a remote machine; it gets even more complicated.
 
-\subsection{The Forecast}
+\subsection{Post Processing}
 
-....
+In the early 2000s when the automation of ADCIRC had not yet been sufficiently
+explored, there was an additional step that was essentially the inverse
+operation of "adcprep". It is called, unsurprisingly, "adcpost". It's job is to
+combine all the output files from all the "little" ADCIRC domain runs, into
+global output files. However, a great time saving step was introduced into
+ADCIRC around version ZYX \cite{} that allowed for the offloading of the output
+writing to a dedicated process among the MPI processes contributing to the
+computational needs of the simulation. One or more dedicated writer processes
+may be reserved, and when used allows for all of the computational processes to
+send their output to the writer process. This writer process than handles the
+actual writing of the output files. As a result, the use of adcpost has waned.
+It has also been found that there is really no need for more than one of these
+dedicated writer processes for the computations of the model to proceed
+efficiently.
 
-\section{Operational Considerations}
+\subsection{Monitoring Execution Progress}
 
-\subsection{System Portability}
+Monitoring a currently executing simulation is important for detecting any
+errors that might be occurring because a silly mistake in the submission process
+or a more fundamental issue with the model physics. If one is attempting to
+submit a set of tens or even hundreds of ADCIRC simulations (as has been known
+to be done), the detecting issues along the way is very helpful in making the
+most efficient use of one's own time and any computing time allocated to the
+effort.
 
-\subsection{System Configurability}
+\subsection{Detection of Simulation End}
 
-\subsection{Redundancy}
+\subsection{Output Data Management}
 
-...multiple sites, ...
+\subsection{Delivery of Results}
 
-\subsection{Maximization of Operator Efficiency}
+\subsection{Continuity During Extended Simulations}
 
-\subsection{Minimization of Cognative Load}
+As if this wasn’t complicated enough, ASGS minimizes the amount of ADCIRC
+runtime needed by managing state or hot start files. In order to always be
+starting at a model state that was generated from where the storm actually has
+been, it is essential to play catch up before running the next set up storm
+scenarios.  When the NHC issues a forecast, it also issues what’s called a best
+track file that gives tells us where the storm has been and what its central
+pressures and isotachs were. So when the NHC issues an advisory, what actually
+happens is the following:
 
-\subsection{Field Servicability}
+\subsection{Advanced Capabilities: Model Coupling and Data Assimilation}
 
-\subsection{Teardown and Rebuild vs Troubleshooting}
+The ADCIRC model is for a very specific physical process, i.e., virtually
+evolving a body of water on a revolving earth based on both tidal effects and
+external forcing. Most often these forcings are in the form of the wind that is
+blowing over the water's surface (e.g., the storm surge due to a hurricane
+nearing landfall). However, in some geographical areas of the world, considering
+the effect of something like waves is important.  In the past, demonstration
+projects have been conducted to explore the efficacy of different approaches.
+One approach is file based couple; essentially models take turn running, dump
+their output to a file, then that output file from one model is used as the
+input file of another. This can happen in just one direction (one-way coupling)
+or bidirectionally (two-way coupling). Advanced systems using a middleware
+broker architecture have also been explored and shown to be very good for
+coupling many models into a single system \cite{}.  But in practice, when
+it is shown to be truly useful for improving the model results, coupling is done
+by integrating models into one another so that they run under the same binary
+executable. For example, ADCIRC and SWAN, a wave model, complement one another
+so well, that ADCIRC is distributed with a version of SWAN and build a single
+"coupled" executable called "ADCSWAN" (ADCIRC+SWAN). \cite{}.
 
-\section{The ASGS Shell Environment}
+\section{ASGS: ADCIRC Surge Guidance System}
 
-\subsection{How It Works}
+\subsection{Background}
 
-\subsection{The ADCIRC Builder}
+ASGS is a system that grew out of the need to automate ADCIRC forecasts for the
+New Orleans District of the US Army Corps of Engineers in the immediate
+aftermath of Hurricane Katrina. A system called the Lake Pontchartrain
+Forecasting System was built by Estrade, et al.\cite{} at LSU's Center for
+Computation and Technology in 2006 and demonstrated at Supercomputing 2006 in
+Tampa, Florida. The system utilized LONI's network of IBM P5 supercomputing
+clusters that were located around the State of Louisiana.
 
-\subsection{ADCIRC Live ...}
+CCT was funded and tasked by the Corps to produce a system they could use to
+detect high predicted surges at 3 different locations of the south shore of Lake
+Pontchartrain. The locations were the outlets of 3 large rainwater drainage
+canals that carried rain water out of the City of New Orleans during heavy
+rainfall. During Hurricane Katrina, the storm surge on the south shore of the
+Lake was very high and the open canals actually served to let water into the
+City during the storm. Most infamously the 17th Street Canal's eastern wall
+collapsed due to the hydrostatic pressure of the surge, and resulted in the
+devastating flooding of the New Orleans neighborhood of Lakeview.  The Corps
+proposed designed and installed gates at each of these canal locations, that if
+needed due to storm surge, could be lowered into place to prevent water
+infiltration. However, when lowered these gates would also prevent the drainage
+of the rain water to flow out of the City and into the Lake. The solution for
+this issue was to add high powered pumps that would lift the drained rainwater
+over the gates. They needed a system that would allow the Corps' decision makers
+to determine if and when they needed to lower the gates into place and turn on
+the pumps.  The forecasting system was triggered off of NHC forecasts. Once a
+forecast was issued, the system would prepare an an ensemble of 4 slightly
+modified predicted hurricane tracks to be used as the forcing input for ADCIRC's
+internal GHAM wind model. Each of the 5 tracks (the consensus NHC track + 4
+variations) were intended to run on each of the 5 IBM P5 supercomputers deployed
+by LONI.  The demonstration project showcased other aspects of "on demand" HPC
+computing. For example the HARC Scheduler\cite{} was used coordinate the
+submission of these 5 tracks in order to minimize the turnaround time and
+maximize the number of simulations that could run on different machines at any
+given time. There was a system monitor that detected when the runs were
+finished, and when it was the output files were collected and post processed.
+There was some rudimentary attempts to automatically determine a threat level
+(out of a simplified 5 point scale); and notifications were part of this
+approach, as well. The project was successfully demonstrated at Supercomputing
+2006; but it was never used operational.
 
-\section{ASGS System Monitoring}
+In 2008, the system was resurrected when the State wanted to begin producing
+hurricane surge forecasts for their emergency management teams during the lead
+up to what became Hurricane Gustav. In collaboration with the University of
+North Carolina (home base of one of ADCIRC's creators, Dr. Rick Luettich); the
+scripts used from the original LPFS project were peared down and simplified for
+real time operations. The State wanted the most reliable system in place
+possible in that time frame, and that consisted of running only on a single HPC
+P5 machine, which was located in Baton Rouge. Certain pieces were kept, e.g.,
+the detection of when the NHC issued a new advisory was needed. The Perl to
+generate an ensemble of alternate hurricane tracks was also need to explore
+potential shifts in track, wind intensity, or both. ...
 
-\section{Team Communication and Battle Rhythm}
+\subsection{Operational Considerations}
 
-\section{Technology Decisions}
+Over the years ASGS has grown into a very mature, operationally focused
+execution environment with strong support for many aspects outside of its
+original purpose of running a continuous ADCIRC forecast. One thing became very
+clear each year this system was employed (and it has been ever since with 16
+years of continued service to the people of Louisiana and Texas). The thing that
+was made clear is that real time emergency operations of a forecast system
+required more than just the ability to automate ADCIRC.
 
-\subsection{The Software Stack}
+During real time emergency operations, the need to be able to adjust many
+aspects of the system based on stakeholder demands for scenario information was
+found to be very important. The ability to quickly set up a system on a
+different machine for a multitude of reasons was also made clear. Minimizing the
+cognative load of the operator was also found to be very important; this can
+span from eliminating as much type as possible with ready-made tools and scripts
+to being able to quickly debug a misbehaving system as quickly as possible.
+\subsection{ASGSH - The ASGS Shell Environment}
 
-based on portability, easy of understanding, modifying in real time, field
-servicing, track record of reliabilty, etc, etco
+In 2018, work was undertaken to unify the installation process of ASGS. Until
+this time it had been just a bunch of scripts. These scripts worked reliably,
+but is was exceedingly difficult to onboard new operators or port to new
+systems.
 
-.. history of forecasting systems I've built and the common threads (bash,
-perl, fortran ..)
+The result was a unified installation script that essentially created an
+isolated environment that maintained its own environmental variables. For
+example, one of the hardest parts of building ADCIRC from source is that it
+requires netCDF libaries for Fortran. This requires the underlying netCDF C
+libraries, which in turn requires HDF5 C libraries.  The installation script is
+written in Perl, and manages the building of many other packages and makes heavy
+use of Perl's natural access to the user's shell environment via the \%ENV hash.
+In addition to building upon \%ENV, the script must manage different platforms;
+which for the purposes of ASGS constituted specific HPC systems as well as
+generally specific Linux distributions. Because of the ASGS installation script
+uses a custom system for detecting which platform it is on; this script is aptly
+called "guess".
 
-\subsection{The Hardware Systems}
+Once the build script is finished running, it dumps a text file that is
+basically a shell script that "exports" all the environmental variables it cares
+about controlling. For example, it updates PATH, LD\_LIBRARY\_PATH, and
+LD\_INCLUDE\_PATH. These variable are essential to building ADCIRC with the local
+netCDF library, for example.
 
-cloud versus bare metal - why ...
+ASGS also presents an interactive "shell", which is started by running a
+generated shell scripted called "asgsh". When executed, "bash -c" is used to
+load this script; and the user is presented with a shell environment that is
+still bash, but is loaded with all the proper paths and environment. For the
+purposes of the reader's imagination, they may consider this a "REPL" shell. The
+advantage of this is that it is isolated from their normal login shell, and
+within it they have access to all the standard ASGS utilities and scripts in a
+local ./bin directory. The figure below is what the shell environment looks like
+when it is first loaded.
 
-\section{Bash}
+(insert figure)
 
-Bash is the engine ...
+\subsection{Named Storm Profiles}
 
-\section{Perl}
+ASGS now has total control inside of this shell without concern for the overall
+system or user's login shell. As such, it supports several features that help
+immensely during emergency operations. For example, the ASGS Shell Environment
+supports "profile" switching; this allows a general standard operating procedure
+of creating a named profile for each named storm of the given year. Within that
+profile, the user may modify many different environmental variables that relate
+to the parameters used to control the ADCIRC automation, inside of a
+configuration file.
 
-Perl is the super charger nitro booser ...
+\subsection{Support for Many Versions of ADCIRC}
 
-\section{The Technology Graveyard}
+ASGSH also strongly supports the building and management of different versions
+of ADCIRC. It is very similar to what perlbrew provides for Perl. In addition to
+this, there is an ADCIRC build wizard that allows a user to select from many
+supported versions (and deviations from versions, called flavors). This wizard
+is built upon git and a patch system that was developed to patch the upstream
+ADCIRC code. The figure below is a screen capture of what the ADCIRC build
+wizard looks like at the time of the writing of this paper. Behind most options
+for ADCIRC version, is a set of patch files that are maintained by the ASGS
+project. The patches generally adjust the Makefile or work/cmplrflags.mk file;
+but have been used in the past to adjust the function Fortran 90 source code.
+The true power of this system has yet to be realized, but offers a tremendous
+opportunity for customizing ADCIRC behavior and user interface to support many
+different use cases.
 
-... python, matlab
+(insert figure)
 
-\section{Research \& Development}
+\subsection{Support for Many Platforms}
 
-\textbf{Weather::NHC::TropicalCyclone} ....
+Extending ASGSH (or porting) ASGSH to a different platforms is also supported,
+because this is an absolute requirement to remain operationally flexible. The
+major HPC systems that are utilized during the hurricane season have their own
+specific support because each one is slightly different. Most of these systems
+run some version of Redhat Enterprise Linux (RHEL), but each one is set up
+differently - even within the same HPC organizations. The result of the need to
+manage these differences has resulted in a very flexible system.  One of the
+differences among the HPC systems is the compiler suite that is offered. The
+Intel Compiler suite is used almost universally across all institutional HPC
+environments, but there are differences among the versions of this suite that
+necessitate they be treated specially. For example, porting ASGS to TACC's most
+recent HPC addition, Stampede3 \cite{}, required that ASGS deepen its support to
+add an additional class of compilers. It now supports the
+GCC/GFORTRAN\footnote{version =< 9...}, the traditional Intel Compiler suite
+(which provided icc, ifort, mpif90), and now the new Intel OneAPI Compiler suite
+that provides a new set of LLVM based compilers, for C this is the icx compiler
+and for Fortran, the ifx compiler. Intel has also introduced another wrinkle
+regarding the MPI compiler.For many years Intel cooperated with the psuedo
+standard of naming the MPI Fortran compiler, "mpif90". In recent years, it has
+moved towards favoring this compiler (wrapper) named "mpiifort"). It remains to
+be seen if they introduce something a "mpifx" compiler, but their recent history
+suggests this will be, or already is, the case.
 
-\textbf{OpenMP::Simple} ....
+\subsection{Build Around ADCIRC Automation}
 
-... experimenting mesh partitioning schemes
+Generating Alternate Storm Track Scenarios
+
+One of the major concepts that LPFS demonstrated was the efficacy of running
+multiple alternate storms. The reason for this is that, due to the complexity of
+coastline geography, drastic changes in expected storm surge may happen based on
+real time shifts in the storms actual path or in its actual strength. For this
+reason, ASGS runs not only the official forecast (also called the consensus
+track), but also some tracks that have been perturbed in such as way that they
+may veer right or left to some degree; or the wind speed may be increased or
+decreased.  During a storm event, the scenario package may be adjusted based on
+the information needs of key stakeholders at the state and federal level. For
+example, given the consensus track; they may wish to see the surge forecast in
+the event that the storm shifted to the left 50\%. They may also wish to see
+what would happen if the storm intensified at some point before landfall, which
+in the model would mean that the wind speeds would be increased by some
+percentage. In ASGS, storm scenarios may be adjusted for both the veer and the
+change in wind intensity.
+
+\section{Operational Support}
+
+The techniques and tooling built into ASGS have their roots in operational
+necessity. One of the very first continuous forecasting systems developed around
+ADCIRC was in support of Operation Iraqi Freedom\cite{}. The system itself
+utilized shell scripts that had been used originally for research runs of ADCIRC
+on NAVO's Major Shared Resources Center HPC resources, and were adapted to run
+in a classified ARL HPC environment. The scripts downloaded timely
+meteorological forecast data, converted this data for fort.22 file formats by
+interpolating this data onto the ADCIRC mesh, prepared input files for a
+multiprocessor ADCIRC execution, and submitted this job to the batch system of
+the HPC ARL machine. When it was detected that the simulation had run to
+completion, the results were downloaded to a local machine, and plots were
+generated using Matlab scripts. These graphical plots were then uploaded to a
+secure FTP location and made available to decision makers.
+
+Even though this system was cobbled together with shell scripts and a very
+cumbersome Matlab environment that was difficult to incorporate into an
+automated workflow, it demonstrated the efficacy of the approach. The system
+continued to evolve, and was eventually using an XML based framework that was
+used to describe a series of remote and local interactions using ssh. In many
+ways, it resembled systems that are now used by system administrators for
+provisioning and managing large amounts of systems, e.g., Puppet, Chef, Ansible.
+It was called Securerun and it is now on github\cite{Securerun}. A Patent
+application was awarded for this technology, but it was never approached with
+its own USPTO Patent\cite{SecurerunUSPTO}. However, the system that was developed to fetch and
+process the meteorological data was awarded a USPTO Patent.  This experience
+with the OIF system directly impacted the architecture and approach of the LPFS
+system that was developed in 2006 at LSU's Center for Computation and
+Technology. However, neither of these systems were considered "real time" or had
+the kind of delivery constraints that ASGS now supports.  ASGS is now a critical
+tool for emergency managers in Louisiana, Texas, and among several federal
+agencies for making important decisions. It is not the only tool used to help
+aid in the decisions, but it is an important one.  Examples of decisions that
+are made based on the real time surge forecasts of ASGS include:
+
+As an example of the impact that ASGS has on emergency operations nationwide,
+ADCIRC was the winner ofDHS Science and TechnologyImpact Awards in 2010 and
+2012\cite{}.
+
+\subsection{Operator Friendly Feature}
+
+The developers of ASGS (Fleming and Estrade), are serve as operators themselves
+during tropical storms. And as a result they have key insight into the kinds of
+features that make their lives easier and less prone to mistakes, particularly
+after being up for many hours. When a storm is threatening the US coast, the
+ASGS Operations Team is on call 24/7 for the duration of the event. This aspect
+of the system, the human operator, is not something that can replaced with a
+program. But they can be greatly assisted by the right type of programs and
+tools.
+
+It starts with ASGS' robust approach to reliable installations of the tools and
+supporting libraries. It is very easy to install ASGS on all of the big HPC
+systems that are required to run ADCIRC on large, operational meshes.
+
+Once ASGS is built, the operator starts the ASGS Shell Environment, which is
+outfitted with many special purpose tools and commands that an operator will
+need to use when setting up a forecast. There is a named profile system that
+allows operators to save and recall previous set ups, commands to clone these
+set ups for rapidly duplicating a known good setup, and recovering a profile
+from an orphaned configuration file. There are tools that are used to verify
+that the installation has everything it needs to run the Fortran, Bash, and Perl
+utilities that are so critical.
+
+The commands have been so streamlined that once ASGS is built, a trained
+operator can have a forecast running a custom set of storm scenarios (scenario
+package) in mere minutes. And a single ASGS installation can handle an arbitrary
+number of simultaneous forecasting runs, limited only by the capacity of the
+number of CPU cores the system has made available for this work (which usually
+numbers in the thousands).
+
+The developers of ASGS are always looking for ways to streamline common tasks
+and situations that take a non-trivial amount of time to recover from. A
+relatively recent capability allows an operator to make a back up of the
+installed system and place it safely in another directory or on a remote system,
+ready to provide a way to recover a known good systems. This capability was made
+as a result of some HPC center's having a fairly aggressive data purge policy.
+This prevents operators from keeping a known working installation intact for
+more than 60 days, so no staging is really possible more than 30 days out.
+
+Because the operators are often making adjustments at all hours of the day, a
+Perl script was developed that would statically evaluate an ASGS configuration
+file. It is easy to mistype some parts of the configuration file. It is called,
+asgs-lint. And another new tool that is available for experimental use is
+asgs-mon, and standalone monitoring program that is able to run a number of Bash
+and Perl scripts periodically to evaluate the health of the ASGS forecast
+currently underway. I can alert an operator if there are issues detected and it
+may be used to perform various housekeeping tasks. This capability is one that
+has been sorely needed, and it is possible because Bash and Perl are so reliable
+and predictable.
+
+For new operators, or anyone who wishes to play along at home, there is a public
+checklist for onboarding new operators. There is also an Operators
+Cheatsheet\cite{} that as designed for both new and experienced operators to
+reference when in the thick of things. There are many shortcut commands and
+tools for navigating the ASGS directory hierarchy, many are specific to the
+current forecast. For example, when typed in the ASGS Shell prompt, "rd" is an
+alias to "goto rundir"; this will change their current working directory to be
+the one that is supposed to be where all the ADCIRC runs are happening for each
+forecast that is issued. It was created because operators kept having to look at
+the contents of a "state file" for this information. There are many other such
+commands that eliminates the need for the operator to have to hunt for
+information or have a hard time navigating important directories.
+
+\subsection{Redundancy and Battle Rhythm}
+
+An important aspect to executing with confidence in a high pressure, real time
+emergency is that the ASGS Ops team has learned to hedge its bets and duplicate
+its most important runs on different HPC systems - ideally separated by some
+large physical distance, e.g., LSU HPC/LONI and UT's TACC. It is possible to
+grab the output of a set of forecasts operating in one location (say, Louisiana)
+and hot start it another location (e.g., Texas). This is crucially important
+when a storm is heading towards a specific area. For example, Baton Rouge is
+usually not spared from hurricanes even though it's some more miles inland that
+New Orleans. But obviously, the State of Louisiana would want the forecasts for
+the storm about to impact it to be done on State resources.
+
+But, in 2008 for Hurricane Gustav; it is common for such storms that directly
+impact Baton Rouge to knock out its power. This didn't happen back then, but it
+regularly does no; but the solution would be to run a simultaneous forecast in
+Texas so that when the power in Baton Rouge goes out and the LSU machines go
+down, the run goes on. The hotstart handoff feature of ASGS was designed to
+easily faciliate this kind of operatinal coordination.
+
+\subsection{Technology Decisions}
+
+The software stack is outlined in much more detail in the following section, but
+the decision regarding what technologies to use center around a few important
+aspects. The developers of ASGS have been working around Linux for a long time,
+over 20 years. And they settled on using certain tools and learned to use them
+very well. These tools, in particular Bash and Perl, also work exceptionally
+well and allow for the creation of extremely long lived scripts and utilities.
+Using stable and well support tools has contributed directly to the stability
+and robustness of ASGS, and this really is apparent during when a hurricane is
+bearing down on the US coastline; and every minute counts but also a mistake can
+mean that emergency managers do not get the information that they need at a
+critical time.
+
+\section{The Software Stack}
+
+More details about the operational considerations when deciding the software
+technology used to build ASGS and support ADCIRC automation are covered in the
+\section{Operational Support} section. This section focuses on the technology
+that underlies everything. It suffices to say here that the technology decisions
+are based on the following criteria:
+
+It is safe to assume that all important systems used when ASGS are being used
+operationally during an active Atlantic hurricane are running some variant of
+Linux. It is true that over the years, as HPC system vendors came and went, they
+provided their own operating system environments. During the lifespan of ASGS,
+the machines that were used operationally were either IBM P5s running AIX or
+they were basic beowulf Linux clusters running in most cases, Red Hat Enterprise
+Linux. The part of these systems that made them different than a typical
+commodity cluster is that they had access to extremely large amounts of disk
+storage and that they used the fastest possible network topologies, which even
+today are optimized for message passing (MPI) based parallelism by allowing
+direct internode memory access that use a special protocol to read or write
+messages directly to the system memory (e.g., Infiniband supports this type of
+outreach via their special DMA card and protocol "verb" technology).
+
+\subsection{Linux}
+
+Fortunately, the userlevel interfaces of these libraries are sufficiently mature
+to allow  a C and Fortran codes to compile virtually unaltered when using any of
+the MPI libraries. The other, more fortunate aspect, is that the userland
+environment was already well mature and standardized on all of these machines.
+And while each system has its idiosyncrasies, they are all fundamentally
+architected in the same way.  Over the years, the stability of the GNU userland
+tool chain has had a profound effect in a vast number of areas due to it's
+standardizations and predictability. This allows ASGS to fully expect and take
+advantage of standard Unix utilities; such as sed, grep, find, and awk. Access
+to these standard utilities is essential to the core of what ASGS does, ADCIRC
+automation on the large systems required for operational meshes, and to minimize
+the developer load in maintaining portability.
+
+\subsection{Fortran 90}
+
+The ADCIRC model as originally written in Fortran 77. Over the years, it has
+been brought up to use Fortran 90. This is a solid choice for what it does; more
+importantly the subject domain experts who wrote the original ADCIRC source code
+and those who continue to maintain and add to it today, are more experts in
+Fortran than any other language. It was written for scientists, and the
+scientists who advanced ADCIRC from their research leverage it quite well. It is
+also well supported by GNU's GCC suite through Gfortran. This suite also
+continues to live on and bear much fruit. There are also no questions regarding
+the ability for commercial compilers, such as those provided for by Intel, IBM,
+Portland Group, NAG, etc; to build this code.
+
+There are also occasional situations where ASGS needs a capability, and because
+the knowledge and will to use it exist among the ASGS developers; Fortran is the
+preferred choice for creating utilities that much deal with input or output
+data. Obviously, Fortran falls short in areas for which it is not intended. Text
+processing and system process management are two areas in which ASGS would not
+attempt to use Fortran. But, nobody is going to rewrite ADCIRC in C, C++, or
+something like Rust ever. This is a bold claim, but a safe one. So Fortran 90 is
+a permanent member of the ASGS technology stack.
+
+\subsection{Bash}
+
+Because of the assurances that exist regarding the availability of standard GNU
+userland tools and the widespread adoption of Linux on the big systems ASGS
+requires during realtime operations, Bash is also a permanent member of the
+technology stack.
+
+As mentioned previously, ASGS began from the ashes of a project that
+demonstrated the benefits of an ensemble based approach. Nearly anyone in the
+last 25 years who has attempted to automate any aspect of ADCIRC has utlized
+shell scripts to orchestrate all of the steps needed. It is the obvious choice
+to glue together standard Unix utilities frequently used and the tools that have
+been built using Fortran 90 and Perl.
+
+It is a Bash script that is the primary driver for the forecasting system
+itself, which implements all of the automation steps required for ADCIRC
+forecasting that were outlined above. This script is called \textit{asgs\_main.sh}.
+Another strength of shell scripts is that it has direct access to the
+environment, and this is the only reason that the ASGS Shell Environment exists
+and is able to provide so many benefits.
+
+The reliance on shell scripting to orchestrate everything also allows the entire
+system to be immediately accessible and field servicable during a real time
+storm event. It is the basis for allowing the team to mitigate a great number of
+service disruptions that are outside of their control. It may be surprising for
+those familiar with ASGS or the team behind it that Perl is not the main driver
+of the system or enabling technology behind the custom interactive shell
+environment; but it is true. Perl provides a strong basis for developing very
+powerful and complex tools, but it within the Bash scripts that these Perl
+utilities are generally called just like any other shell command or userland
+utility.
+
+Specific qualities and capabilities of Bash that are very important include:
+
+As a final note, the actual Bash shell (bash) that is used is the one provided
+for on the system itself. This note is to contract how Perl is handled, as
+describe in the preceding section.
+
+\subsection{Perl}
+
+Perl is a critical piece of ASGS, but is used to create very targeted tools. It
+is also used to create tool systems, such as the installation script
+(asgs-brew.pl) and the ASGS monitor (asgs-mon).
+
+It is important to note that, unlike the system "bash" shell; ASGS does not rely
+on the system perl. This is generally not because the system "perl" is usually
+old, because Perl scripts are in many cases exceedingly backward compatible. But
+it is because the ASGSH environment relies on many Perl modules that would be a
+pain to deal with from system to system. So that the HPC system administrators
+do not have to get involved, ASGS build its own perl using the defacto tool for
+creating Perl virtual environments, perlbew. One exception to "not using system
+perl" rule is that asgs-brew.pl must be written in a way that assumes only the
+most basic Perl interpreter. It is considered a bootstrap script, but this is
+not a hard constraint. asgs-brew.pl is written so that it can be run as far back
+as perl 5.8.8 - maybe further back. That is very widely deployed version from
+over 20 years ago.
+
+Perlbrew allows ASGS to build up a very recent version of perl and install all
+the modules it needs directly to CPAN. ASGS does have a Perl library it
+distributes in the PERL/ directory; but it takes full advantage of the ability
+to download modules it needs to do amazing things.
+
+What are these amazing things?
+
+\subsection{The Technology Trash Heap}
+
+\section{Other Uses for ASGS}
+
+The software ecosystem that has been built around ADCIRC and to support
+operational use through ASGS has bore much good fruit about making it useful in
+situations that are not real time and not affected by delivery timeframes.
+
+\subsection{Operational Research \& Development}
+
+ASGS, with it's support to build and load for use many different versions of
+ADCIRC, has resulted in the ASGS Shell environment being really super handy for
+working with ADCIRC manually.
+
+The patch and ADCIRC version management system for building and loading
+different versions of ADCIRC a breeze. The patch system is so simple, additional
+patchsets may be created very easily just by copying an existing one. This is an
+ideal environment for experimenting with ADCIRC. There are a lot of tooling
+ideas around these activities, but there has not yet been enough demands to
+develop this more fully. The future is bright, though. A lot of people are
+looking at ASGS to support their non-real time work.
+
+\subsection{ADCIRC Only Builder, On Windows}
+
+The developers and main operators have recently released a site for getting
+commercial ADCIRC support. It is called ADCIRC Live
+(c)\footnote{https://adcirc.live}. One of the first available tools is a
+single script that is able to build ADCIRC directly on many versions of Linux,
+including those hosted on Windows under WSL2. Being able to reliably build and
+use ADCIRC locally under Windows has been something that many people can use.
+The big deal here is that it can provide for a way to manage different ADCIRC
+versions and load them without the user being inside of the interactive ASGS
+Shell. While effective, the shell is primarily used for interactive real time
+operations. But it is also a powerful environment for doing anything with
+ADCIRC, because it has to be for real time operations.
+
+\subsection{ADCIRC Focused SaaS and API Tools} Related to the ADCIRC build in
+the previous section, the same client may be used for making client calls to the
+ADCIRC SaaS API. It currently supports API calls that make it very easy to
+visualized ADCIRC data locally in Paraview.
+
+\section{Conclusion}
+
+\section{Acknowledgements} (need to fill this in, ASGS was funded along way by
+several state and federal agencies; and supported by several HPC centers and
+researchers at Notre Dame, LKSU, UNC, UT, North Carolina State, and the
+University of Oklahoma(I think))
 
 \break
 \bibliography{references}
