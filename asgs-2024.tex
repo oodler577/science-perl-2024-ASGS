@@ -42,67 +42,73 @@ Jason G. Fleming, PhD. \\
 \maketitle
 
 \begin{abstract}
-The ADCIRC Surge Guidance System is a portable real-time operational storm surge
-fore- casting framework, forged over 15 Atlantic hurricane seasons, that is used
-to deliver critical information to emergency managers on federal, state, and
-local levels in Louisiana, Texas, and North Carolina and within groups such
-FEMA, NOAA, and DHS. Over the years it has saved millions of dollars in time,
-property, and emergency assets. It has also likely saved many lives. This paper
-discusses its humble origins from a collaboration between LSU and UNC in the
-early wake of Hurricane Katrina (2005), to its first real test during Hurricane
-Gustav (2008) and successes over the years. Much of this paper discusses the
-technical aspects of the system, how the user experience has been tailored for
-real-time operations, and the technical decisions that have been made leading
-directly to its success as a robust and adaptable framework. Most relevant ’for
-the intended audience is how using Perl, Bash shell scripting, and standard Unix
-tools has made all of this possible.
+The ADCIRC Surge Guidance System (ASGS), first written about in
+2008\cite{fleming2008real}, is a portable real-time operational storm surge
+forecasting framework, that has been forged over 15 Atlantic hurricane seasons.
+It is used to deliver critical, time sensitive information to emergency managers
+on federal, state, and local levels in Louisiana, Texas, and North Carolina and
+within groups such FEMA, NOAA, and DHS. Over the years it has saved millions of
+dollars in time, property, and emergency assets. It has also likely saved many
+lives. This paper discusses its humble origins as a collaboration between LSU
+and UNC in the early wake of Hurricane Katrina (2005), to its first real test
+during Hurricane Gustav\footnote{2008, landfall Baton Rouge, La}, and has been
+used successfully to assist the community since then.  Much of this paper
+discusses the technical aspects of the system, how the user experience has been
+tailored for real-time operations, and the technical decisions that have been
+made leading directly to its success as a robust and adaptable framework. Most
+relevant for the intended audience is how using Perl, Bash shell scripting, and
+standard Unix tools has made all of this possible.
 \end{abstract}
 
 \section{Introduction}
 
 It is hard to believe that in 2001 when weather forecasting models were well
 know and used across society, that the the idea of providing such forecasting
-litoral, or nearshore zones was the realm of specialized oceangraphers and the
-military. But it is true, that until the infamous Hurricane Katrina in 2005 that
-that nobody outside this small cadre of specialists ran these kinds of models or
-cared much.  As it came to pass, Katrina exposed the crucial need for providing
-autmated storm surge for- casting. And wider society was reminded that it is the
-water that kills the most people during hurricanes, not the wind. Far more than
-a slow moving, foreboding and wet tornado, a hurricane is a wholly different
-kind of threat. Along with its many inches of rain and harsh winds, can come a
-wall of that may in some places exceed 30 feet. And this was the case with
-Katrina.  The mathematics behind such modelling capabilities had existed for a
-long time \cite{luettich1992adcirc}, and in fact was pioneered by the Dutch; who
-themselves had been victims of grave flooding events over the centuries. It was
-not until the late 1980s that a model was developed that would revolutionize the
-ability to accurately model the way that water behaved near the shorelines.
+litoral, or nearshore coastal zones, was the realm of specialized oceangraphers
+and the military. But it is true, that until the infamous Hurricane Katrina in
+2005 that that nobody outside this small cadre of specialists ran these kinds of
+models operationaly or cared too much about being able to determine storm surge
+in real-time. But awareness of the fact that it is the storm surge caused by
+hurricanes and not the wind or rain that kills the most people and cause the
+most damage during these events.
 
 \section{ADCIRC - The Advanced Circulation Model}
 
-The ADCIRC model is the main kernel around which the forecasting system ins
-build. It automates all aspects of setting up the model, running it (usually in
-on a parallel Linux cluster), processing the results, and send the results to a
-geographical information system for viewing on the web.  The computational model
-itself is internationally recognized as the best way model the the behavior of
-large mass of water as it is piled up against a complex coastline geometry. It
-is used to study the impacts of past hurricanes in the Gulf of Mexico and the
-Atlantic coastline of the United States. It is to verify insurance claims after
-these sort of tropical surge events. It is even used to forecast potential
-impacts of hypothetical and real time tropical events.  The application area
-discussed here is that of forecasting potential impacts of a tropical event as
-it heads towards making landfall somewhere in the United States. The system is
-essentially the automation of running the model, just as someone would run it
-manually. Only here the system automates all aspects of the set up, execution,
-and post processing of results into products and forms that are readily consumed
-by the interested parties, be they the general public or Federal and State level
-emergency managers.  Recently, after many years in a state of ambiguity, the
-source code for ADCIRC was released as open source software under the GNU GPL
-3.0 license. This has opened up opportunities for professional ADCIRC support
-companies such as ADCIRC Live \footnote{\url{https://adcirc.live}} to offer support
-packages and SaaS platforms for helping those using ADCIRC professionally or as
-a public service.
+And as it came to pass, Katrina exposed the crucial need for providing autmated
+storm surge forecasting.  Far more than a slow moving, foreboding and wet
+tornado, a hurricane is a wholly different kind of threat. Along with its many
+inches of rain and harsh winds, can come a wall of that may in some places
+exceed 20 feet. This was certainly the case with Katrina. In addition to this,
+the the complex geometries of the coastlines along the path of a hurricane
+affect greatly where this water will pile up. For example, had Katrina
+approached southern Louisiana and southern Mississippi\footnote{e.g., near Bay
+Saint Louis and Biloxi area} a mile or two, differently in either direction,
+neither the northern coast of Bay Saint Louis or the souther shore of Lake
+Pontchartrain would have experienced the substantial surge of water that they
+did. This also points to the reluctance of many residents from evacuating from
+their homes in these areas. It's more often than not, that they are right to
+think that they will not be affected. During Katrina, many residents along Bay
+Saint Louis, Biloxi, and Gulfport guessed incorrectly. They experience what a
+20+ feet wall of water looks like. Many did not survive, certainly most wooden
+structures didn't survive. And those thinking they were save in multistory brick
+buildings were not sure they would survive either. This \textit{guessing} is
+almost entirely eliminated using high quality storm surge forecasting.
 
-\section{ADCIRC Input Data}
+The mathematics of the physics used in such such modelling capabilities had
+existed for a long time \cite{luettich1992adcirc}, and in fact was pioneered by
+the Dutch; who themselves had been victims of grave flooding events over the
+centuries. It was not until the late 1980s that a model was developed that would
+revolutionize the ability to accurately model the way that water behaved near
+the shorelines. This model was called ADCIRC, and implemented something called
+the Wave Continuity Equation introduced in 1979 by Lynch and
+Gray\cite{lynch1979wave}. A detailed background of their work and the work that
+followed is detailed very well in \cite{dresback2005form}.  A model that has
+been at the heart of storm surge predictions longer than ADCIRC, is called the
+\textit{Sea, Lake, and Overland Surges from Hurricanes} (SLOSH) model. Its role
+in the US Federal Government's National Weather Service is discussed in
+\cite{glahn2009role} and it is compared to ADCIRC in \cite{turan2018comparison}.
+
+\subsection{ADCIRC Input Data}
 
 ADCIRC has a minimal set of input files that it needs to run. It needs
 unstructured finite element mesh that describes the physical geographical domain
@@ -135,6 +141,20 @@ interest near the shore and relatively few points of interest in the open ocean.
 Any number of polygonal shapes could be used, but ADCIRC uses triangular
 elements. So a mesh consists of points in space at specific locations and a list
 of neighboring nodes to which it is connected.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.75\linewidth]{figures/ADCIRC-finite-element-mesh-a-and-bathymetry-b-1344465292.png}
+\caption{\label{fig:mesh}Example of an unstructured mesh of real coastlines present within the Atlantic Ocean
+and the Gulf of Mexico \cite{Warnock17}.}
+\end{figure}
+
+In Figure \ref{fig:mesh}, a mesh is show visual in two ways. Side \textit{(a)}
+shows the triangular elements formed by each node location and the edges that
+connect nodes to form the legs of each triangular element. \textit{(b)} is shows
+the bathymetric depth of the areas across the 2 dimensions of the mesh. It is
+important to note that ADCIRC was originally developed as a 2D model, bathymetric
+depth is used primarily to evolve the solutions along the surface of the water.
 
 This unstructured, or finite element mesh, is as one might expect defined as a
 graph would be. I.e., the mesh file, or fort.14, is simply a list of all the
@@ -209,6 +229,33 @@ surge is dissipated.
 
 \section{Automating ADCIRC}
 
+The ADCIRC model is the main \textit{kernel} around which the forecasting system
+is build. ASGS automates all aspects of setting up the model, running it
+(usually in in parallel on a Linux cluster), processing the results, and sending
+the results to a geographical information system (GIS)\footnote{the Coastal
+Emergency Risks Assessment (CERA) site, \url{https://cera.coastalrisk.live/}}
+for viewing on the web.
+
+ADCIRC itself is \textit{internationally} recognized as the best way model the storm
+surge that results during a hurricane that is impacting a complex coastline
+geometry. It is used to study the impacts of past hurricanes in the Gulf of
+Mexico and the Atlantic coastline of the United States and evaluate different
+types of protection measures as if they had been in place at the time. It is
+also used to verify insurance claims after these sort of tropical surge events.
+It is even used to forecast potential impacts of hypothetical and real time
+tropical events. The application area discussed here is that of forecasting
+potential impacts of a tropical event as it heads towards making landfall
+somewhere in the United States. The system is essentially the automation of
+running the model, just as someone would run it manually. Only here the system
+automates all aspects of the set up, execution, and post processing of results
+into products and forms that are readily consumed by the interested parties, be
+they the general public or Federal and State level emergency managers.
+Recently, after many years in a state of ambiguity, the source code for ADCIRC
+was released as open source software under the GNU GPL 3.0 license. This has
+opened up opportunities for professional ADCIRC support companies such as ADCIRC
+Live \footnote{\url{https://adcirc.live}} to offer support packages and SaaS
+platforms for helping those using ADCIRC professionally or as a public service.
+
 ADCIRC lends itself exceptionally well to automation on Unix and Unix-like
 operating systems with familiar approaches such as shell and Perl scripting,
 especially in large timesharing High Performance Computing environments. Since
@@ -231,8 +278,8 @@ disposal is considered a rite of passage in the ADCIRC Community. Many graduate
 students, engineering consultants, and computer support staff members will face
 this challenge very soon after the decision is made to use ADCIRC in some way.
 The activity of building ADCIRC on a new platform is referred to as "porting".
-The ADCIRC source code ships with both its traditional Makefile-based \cite{}
-building systems and a newer, but not necessarily cooler CMake \cite{}. Most
+The ADCIRC source code ships with both its traditional Makefile-based \cite{adcirc}
+building systems and a newer, but not necessarily cooler CMake \cite{adcirc}. Most
 users prefer the traditional Makefile, since it is more amenable to the process
 of tinkering until it works. Most porting efforts require figuring out the
 work/cmplrflags.mk file. On the rare occasion, often when it involves a new
@@ -240,8 +287,8 @@ compiler on a new system, there might need to be minor updating of the Fortran
 90 code. Due to this reality, the Fortran 90 code itself has accumulated CPP
 style IFDEF sections.  Recently, the building and deployment of ADCIRC has been
 made much more accessible on the systems that are actively supported by ASGS
-\cite{}. Other systems for providing ADCIRC do exist, but they introduce
-more complications for unsophisticated users than they remove \cite{}.
+\cite{asgs}. Other systems for providing ADCIRC do exist, but they introduce
+more complications for unsophisticated users than they remove \cite{adcircspack}.
 
 Fortunately, once ADCIRC is built, the resulting binary executables do not need
 to be rebuilt to turn different options on or off. This is handled in the
@@ -275,12 +322,13 @@ occur? Answering questions like this is in the operational domain.  The main
 challenge to automating the acquisition of data consist of:
 
 Over the years, many tools and approaches have been proposed to make it easier;
-and general patents from the Navy exist \cite{}. Most people tend to create
-their own scripts, but recently there have been attempts to present SaaS
-aggregation services that allow one to select which meteorological data to get
-and how it should be converted before downloading. While interesting and useful,
-a more local approach is required for operational considerations; especially
-during an emergency management situation like a hurricane.
+and general patents from the Navy exist \cite{US20140164438A1}, \cite{US8112455B2}.
+Most people tend to create their own scripts, but recently there have been
+attempts to present SaaS aggregation services that allow one to select which
+meteorological data to get and how it should be converted before downloading.
+While interesting and useful, a more local approach is required for operational
+considerations; especially during an emergency management situation like a
+hurricane.
 
 \subsection{Updating Model Settings}
 
@@ -320,19 +368,19 @@ helps operational experts justify the use of over 1,000 CPU codes per execution.
 And because the speedup has been shown to be linear, it would take the same
 amount of time to run this large TX2020a mesh that it would to run a mesh
 1/1,000th the size on a single CPU core.Recent efforts out of Notre Dame and
-funded by NOAA are producing an extremely large global mesh\cite{}. Notre Dame's
-group headed by Professor Johannes Westerink regularly publishes an update mesh.
-Each iteration put out by Notre Dame is focused on adding additional resolution
-over important areas of the world that require more dense node coverage because
-there are very important hydrological dynamics that have been identified to be
-occurring in these areas. This mesh is over 12 million nodes, which means that
-if run operationally it would efficiently use over 2,500 CPU cores. And many
-sites across the United States are capable of providing these resources,
-including the Texas Advanced Computing Center
-(TACC)\footnote{{https://tacc.utexas.edu/}} and the combined resources of
-Louisiana State University's HPC Center\footnote{\url{https://hpc.lsu.edu}} and
-thier sister organization, Louisiana Optical Network Inititiative
-\footnote{\url{https://loni.org}}.
+funded by NOAA are producing an extremely large global
+mesh\cite{dietrich2012performance}. Notre Dame's group headed by Professor
+Johannes Westerink regularly publishes an update mesh.  Each iteration put out
+by Notre Dame is focused on adding additional resolution over important areas of
+the world that require more dense node coverage because there are very important
+hydrological dynamics that have been identified to be occurring in these areas.
+This mesh is over 12 million nodes, which means that if run operationally it
+would efficiently use over 2,500 CPU cores. And many sites across the United
+States are capable of providing these resources, including the Texas Advanced
+Computing Center (TACC)\footnote{{https://tacc.utexas.edu/}} and the combined
+resources of Louisiana State University's HPC
+Center\footnote{\url{https://hpc.lsu.edu}} and thier sister organization,
+Louisiana Optical Network Inititiative \footnote{\url{https://loni.org}}.
 
 Preparing ADCIRC input files for parallel execution is relatively simple. When
 ADCIRC is compiled, it builds a utility called "adcprep". This utility sole
@@ -382,15 +430,14 @@ explored, there was an additional step that was essentially the inverse
 operation of "adcprep". It is called, unsurprisingly, "adcpost". It's job is to
 combine all the output files from all the "little" ADCIRC domain runs, into
 global output files. However, a great time saving step was introduced into
-ADCIRC around version ZYX \cite{} that allowed for the offloading of the output
-writing to a dedicated process among the MPI processes contributing to the
-computational needs of the simulation. One or more dedicated writer processes
-may be reserved, and when used allows for all of the computational processes to
-send their output to the writer process. This writer process than handles the
-actual writing of the output files. As a result, the use of adcpost has waned.
-It has also been found that there is really no need for more than one of these
-dedicated writer processes for the computations of the model to proceed
-efficiently.
+ADCIRC that allowed for the offloading of the output writing to a dedicated
+process among the MPI processes contributing to the computational needs of the
+simulation. One or more dedicated writer processes may be reserved, and when
+used allows for all of the computational processes to send their output to the
+writer process. This writer process than handles the actual writing of the
+output files. As a result, the use of adcpost has waned.  It has also been found
+that there is really no need for more than one of these dedicated writer
+processes for the computations of the model to proceed efficiently.
 
 \subsection{Monitoring Execution Progress}
 
@@ -433,12 +480,12 @@ their output to a file, then that output file from one model is used as the
 input file of another. This can happen in just one direction (one-way coupling)
 or bidirectionally (two-way coupling). Advanced systems using a middleware
 broker architecture have also been explored and shown to be very good for
-coupling many models into a single system \cite{}.  But in practice, when
+coupling many models into a single system \cite{allard2003high}. But in practice, when
 it is shown to be truly useful for improving the model results, coupling is done
 by integrating models into one another so that they run under the same binary
 executable. For example, ADCIRC and SWAN, a wave model, complement one another
 so well, that ADCIRC is distributed with a version of SWAN and build a single
-"coupled" executable called "ADCSWAN" (ADCIRC+SWAN). \cite{}.
+"coupled" executable called "ADCSWAN" (ADCIRC+SWAN).
 
 \section{ASGS: ADCIRC Surge Guidance System}
 
@@ -447,7 +494,9 @@ so well, that ADCIRC is distributed with a version of SWAN and build a single
 ASGS is a system that grew out of the need to automate ADCIRC forecasts for the
 New Orleans District of the US Army Corps of Engineers in the immediate
 aftermath of Hurricane Katrina. A system called the Lake Pontchartrain
-Forecasting System was built by Estrade, et al.\cite{} at LSU's Center for
+Forecasting System was built by Estrade, Kulesthra, and Balasubramanian
+\footnote{\url{https://www.cct.lsu.edu/research/coastal-hurricane-research/lpfs}};
+ but discussed by Bogden, et al. \cite{LPFS} at LSU's Center for
 Computation and Technology in 2006 and demonstrated at Supercomputing 2006 in
 Tampa, Florida. The system utilized LONI's network of IBM P5 supercomputing
 clusters that were located around the State of Louisiana.
@@ -468,21 +517,32 @@ of the rain water to flow out of the City and into the Lake. The solution for
 this issue was to add high powered pumps that would lift the drained rainwater
 over the gates. They needed a system that would allow the Corps' decision makers
 to determine if and when they needed to lower the gates into place and turn on
-the pumps.  The forecasting system was triggered off of NHC forecasts. Once a
-forecast was issued, the system would prepare an an ensemble of 4 slightly
-modified predicted hurricane tracks to be used as the forcing input for ADCIRC's
-internal GHAM wind model. Each of the 5 tracks (the consensus NHC track + 4
-variations) were intended to run on each of the 5 IBM P5 supercomputers deployed
-by LONI.  The demonstration project showcased other aspects of "on demand" HPC
-computing. For example the HARC Scheduler\cite{} was used coordinate the
-submission of these 5 tracks in order to minimize the turnaround time and
-maximize the number of simulations that could run on different machines at any
-given time. There was a system monitor that detected when the runs were
-finished, and when it was the output files were collected and post processed.
-There was some rudimentary attempts to automatically determine a threat level
-(out of a simplified 5 point scale); and notifications were part of this
+the pumps.
+
+The forecasting system was triggered off of NHC forecasts. Once a forecast was
+issued, the system would prepare an an ensemble of 4 slightly modified predicted
+hurricane tracks to be used as the forcing input for ADCIRC's internal GHAM wind
+model. This is illusted in Figure \ref{fig:tracks} from \cite{LPFS}. Each of the
+tracks (the consensus NHC\footnote{National Hurricane Center,
+\url{https://nhc.noaa.gov}} track + additional variations) were intended to run
+on each of the 5 IBM P5 supercomputers deployed by LONI.  The demonstration
+project showcased other aspects of "on demand" HPC computing. For example the
+HARC Scheduler\cite{maclaren2007harc} was used coordinate the submission of
+these 5 tracks in order to minimize the turnaround time and maximize the number
+of simulations that could run on different machines at any given time. There was
+a system monitor that detected when the runs were finished, and when it was the
+output files were collected and post processed.  There was some rudimentary
+attempts to automatically determine a threat level (out of a simplified 5 point
+scale as discussed in \cite{LPFS}); and notifications were part of this
 approach, as well. The project was successfully demonstrated at Supercomputing
-2006; but it was never used operational.
+2006\footnote{Tampa, Fl}; but it was never used operational but the the USACE in
+it's demonstration form.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.75\linewidth]{figures/The-Lake-Pontchartrain-Forecast-System-deploys-an-ensemble-of-models-to-provide.png}
+\caption{\label{fig:tracks}Example of the ensemble of potential tracks based on the NHC consensus track, discussed in \cite{LPFS}.}
+\end{figure}
 
 In 2008, the system was resurrected when the State wanted to begin producing
 hurricane surge forecasts for their emergency management teams during the lead
@@ -497,6 +557,9 @@ generate an ensemble of alternate hurricane tracks was also need to explore
 potential shifts in track, wind intensity, or both. ...
 
 \subsection{Operational Considerations}
+
+reliable, flexible, portable, pluggable, scalable, configurable, relocatable, compatible, and maintainable.
+
 
 Over the years ASGS has grown into a very mature, operationally focused
 execution environment with strong support for many aspects outside of its
@@ -593,9 +656,9 @@ differences among the HPC systems is the compiler suite that is offered. The
 Intel Compiler suite is used almost universally across all institutional HPC
 environments, but there are differences among the versions of this suite that
 necessitate they be treated specially. For example, porting ASGS to TACC's most
-recent HPC addition, Stampede3 \cite{}, required that ASGS deepen its support to
+recent HPC addition, Stampede3 \cite{stampede3}, required that ASGS deepen its support to
 add an additional class of compilers. It now supports the
-GCC/GFORTRAN\footnote{version =< 9...}, the traditional Intel Compiler suite
+GCC/GFORTRAN\footnote{version =< 9}, the traditional Intel Compiler suite
 (which provided icc, ifort, mpif90), and now the new Intel OneAPI Compiler suite
 that provides a new set of LLVM based compilers, for C this is the icx compiler
 and for Fortran, the ifx compiler. Intel has also introduced another wrinkle
@@ -629,7 +692,7 @@ change in wind intensity.
 
 The techniques and tooling built into ASGS have their roots in operational
 necessity. One of the very first continuous forecasting systems developed around
-ADCIRC was in support of Operation Iraqi Freedom\cite{}. The system itself
+ADCIRC was in support of Operation Iraqi Freedom\cite{blain2005high}. The system itself
 utilized shell scripts that had been used originally for research runs of ADCIRC
 on NAVO's Major Shared Resources Center HPC resources, and were adapted to run
 in a classified ARL HPC environment. The scripts downloaded timely
@@ -662,8 +725,8 @@ aid in the decisions, but it is an important one.  Examples of decisions that
 are made based on the real time surge forecasts of ASGS include:
 
 As an example of the impact that ASGS has on emergency operations nationwide,
-ADCIRC was the winner ofDHS Science and TechnologyImpact Awards in 2010 and
-2012\cite{}.
+ADCIRC was the winner of DHS Science and Technology Impact Awards in 2010 and
+2012\cite{crc-adcirc-factsheet}.
 
 \subsection{Operator Friendly Feature}
 
@@ -718,16 +781,17 @@ and predictable.
 
 For new operators, or anyone who wishes to play along at home, there is a public
 checklist for onboarding new operators. There is also an Operators
-Cheatsheet\cite{} that as designed for both new and experienced operators to
-reference when in the thick of things. There are many shortcut commands and
-tools for navigating the ASGS directory hierarchy, many are specific to the
-current forecast. For example, when typed in the ASGS Shell prompt, "rd" is an
-alias to "goto rundir"; this will change their current working directory to be
-the one that is supposed to be where all the ADCIRC runs are happening for each
-forecast that is issued. It was created because operators kept having to look at
-the contents of a "state file" for this information. There are many other such
-commands that eliminates the need for the operator to have to hunt for
-information or have a hard time navigating important directories.
+Cheatsheet\cite{asgs-cheat-sheet} that as designed for both new and experienced
+operators to reference when in the thick of things. There are many shortcut
+commands and tools for navigating the ASGS directory hierarchy, many are
+specific to the current forecast. For example, when typed in the ASGS Shell
+prompt, "rd" is an alias to "goto rundir"; this will change their current
+working directory to be the one that is supposed to be where all the ADCIRC runs
+are happening for each forecast that is issued. It was created because operators
+kept having to look at the contents of a "state file" for this information.
+There are many other such commands that eliminates the need for the operator to
+have to hunt for information or have a hard time navigating important
+directories.
 
 \subsection{Redundancy and Battle Rhythm}
 
@@ -742,12 +806,29 @@ usually not spared from hurricanes even though it's some more miles inland that
 New Orleans. But obviously, the State of Louisiana would want the forecasts for
 the storm about to impact it to be done on State resources.
 
+\begin{figure}
+\centering
+\includegraphics[width=0.75\linewidth]{figures/scenario-package.png}
+\caption{\label{fig:package} Example of an offseason \textit{scenario package} used to coordinate forecasts happening among many meshes, forcings, machines, and operators. Packages used during an actual storm can get more complex as alternate storm tracks and wind intensities are considered.}
+\end{figure}
+
 But, in 2008 for Hurricane Gustav; it is common for such storms that directly
 impact Baton Rouge to knock out its power. This didn't happen back then, but it
 regularly does no; but the solution would be to run a simultaneous forecast in
 Texas so that when the power in Baton Rouge goes out and the LSU machines go
 down, the run goes on. The hotstart handoff feature of ASGS was designed to
 easily faciliate this kind of operatinal coordination.
+
+Figure \ref{fig:package} is a scenario package of runs across meshes, meteorological
+forcings (e.g., NAM, GFS, etc), HPC machines (i.e., LSU/LONI, TRACC), and operators.
+When there is an actual storm and most operators have moved to using the NHC
+forecasts and internal GAHM model generation, the scenario packages will necessarily
+become more complex since they will include speculative simulations on tracks that
+veer the the left or right of the consensus track by some percentage. It will
+also include tracks that might have higher or lower wind intensity. So it takes
+the ensemble approach of \cite{LPFS}, and expands by allowing the stakeholders to
+decide from one NHC advisory to the next what kind of \textit{worst} or \textit{best}
+case scenarios they want to consider.
 
 \subsection{Technology Decisions}
 
